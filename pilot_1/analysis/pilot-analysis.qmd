@@ -7,7 +7,7 @@ editor: visual
 # Getting set up
 
 ```{r}
-#| label: Data Fetching. Load R packages
+#| label: Data Fetching. Load R packages. lol.
 #| include: false 
 
 library(osfr)
@@ -71,7 +71,6 @@ raw_df <- raw_df %>%
   fill(condition, .direction = "downup")
 
 ```
-
 
 # Survey data
 
