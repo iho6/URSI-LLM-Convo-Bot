@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>URSI LLM Convo Bot Experiment</title>
+    <!-- loading jsPsych -->
+    <script src="https://unpkg.com/jspsych@7.3.4"></script>
+    <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet" type="text/css" />
+
+    <!-- loading jsPsych plug-ins -->
+    <script src="https://unpkg.com/@jspsych-contrib/plugin-pipe@0.1"></script> <!-- for data pipe -->
+    <script src="https://unpkg.com/@jspsych-contrib/plugin-pipe"></script> <!-- condition assignment using data pipe -->
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
+    <script src="../dist/index.browser.js"></script> <!--- local chat plug-in access-->
+    <script src="https://unpkg.com/@jspsych/plugin-html-slider-response@1.1.3"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@jspsych/plugin-survey@1.0.1/css/survey.css" />
+    <script src="https://unpkg.com/@jspsych/plugin-survey@1.0.1"></script>
+
+    <!-- loading react-->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script> <!-- -->
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script> <!--  -->
+
+    <!-- surveyJS slider plug-in upload -->
+    <link href="https://unpkg.com/browse/nouislider@15.8.0/package.json" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.js"></script>
+
+    <!-- uploading survey question jsons -->
+    <script src="pre_convo_survey_json_testing.js"></script> <!-- survey -->
+    <script src="post_convo_survey_republican.js"></script> <!-- survey -->
+    <script src="post_convo_survey_democrat.js"></script> <!-- survey -->
+    <script src="post_convo_survey_euthanasia.js"></script> <!-- survey -->
+    <script src="post_convo_survey_healthcare.js"></script> <!-- survey -->
+    <script src="post_convo_survey_vaccines.js"></script> <!-- survey -->
+    <script src="post_convo_survey_bombing.js"></script> <!-- survey -->
+    <script src="post_convo_survey_gender.js"></script> <!-- survey -->
+    <script src="post_convo_survey_same_sex.js"></script> <!-- survey -->
+    <script src="post_convo_survey_criminal.js"></script> <!-- survey -->
+
+    <!-- loading css -->
+    <link href="styles.css" rel="stylesheet" type="text/css"> <!-- local-ui access -->
+
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cantarell:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Exo:ital,wght@0,100..900;1,100..900&display=swap');
+
+        /* slider format */
+        .slider {
+            font-size: 20px;
+            font-weight: bold;
+            color: black;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+
+        //Initialize jsPsych, redirect to prolific page upon completing experiment
+        var jsPsych = initJsPsych({
+            on_finish: function () {
+                jsPsych.data.displayData();
+                jsPsych.data.get().localSave("csv", "llm_trial.csv"); //save chatbot conversation to local for when testing bot on computer.
+                //window.location = "https://app.prolific.com/submissions/complete?cc=CVWBBA5S";
+            },
+        });
+
+        // capture info from Prolific
+        var prolific_subject_id = jsPsych.data.getURLVariable('PROLIFIC_PID');
+        var study_id = jsPsych.data.getURLVariable('STUDY_ID');
+        var session_id = jsPsych.data.getURLVariable('SESSION_ID');
+
+        //add captured info into jsPsych data
+        jsPsych.data.addProperties({
+            prolific_subject_id: prolific_subject_id,
+            study_id: study_id,
+            session_id: session_id
+        });
+        
+        // create timelines for conditions. the contents of each timeline are at the bottom of this doc
+        var combination_timeline = [];
+
+        // sequential condition assignment using data pipe. pushing a condition timeline into the timeline variable
+        var timeline = [];
+        async function createExperiment() {
+            const condition = 4;
+            if (condition == 4) { timeline = combination_timeline; }
+            jsPsych.run([...timeline]);
+        }
+
+        // setting subject_id and filename for confidential data analysis 
+        const subject_id = jsPsych.randomization.randomID(10);
+        const filename = `${subject_id}.csv`;
+
+        /*  welcome message  */
+        var welcome = {
+            data: {
+                phase: "welcome-message",
+            },
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: "Welcome to the experiment! Press any key to begin.",
+        };
+
+        /* pre-chat survey with different topic options implemented via SurveyJS */
+
+        /* create slider constant for pre-convo survey */
+        const initializePreSlider = (survey) => {
+            //search for every question in the surveyJs with -placeholder in the name, and add a variable for each slider. 
+            //because we put the slider and the question for the text as two seperate question, and named the question text with 'placeholder'
+            survey.onAfterRenderQuestion.add(function (survey, options) {
+                const name = options.question.name;
+
+                // if (sliderQuestions.has(name)) {
+                if (name.includes("-placeholder")) {
+
+                    var slider = document.getElementById(name);
+                    noUiSlider.create(slider, {
+                        start: [50],
+                        range: {
+                            min: 0,
+                            max: 100,
+                        },
+                        step: 1,
+                        tooltips: true,
+                    });
+                    slider.noUiSlider.on("set", function () {
+                        options.question.value = slider.noUiSlider.get();
+                    });
+                }
+            });
+        };
+
+        let surveyResponses = [];
+
+        function extractRelevantRow(responses) {
+            let relevantRow = [];
+
+            // Function to find a row with specific column values
+            function findRowWithValue(values) {
+                for (let row in responses) {
+                    let columnValue = responses[row];
+                    if (columnValue === values) {
+                        return [{ row }];
+                    }
+                }
+                return null;
+            }
+
+            // Loop to check i or 8-i)
+            for (let i = 1; i <= 4; i++) {
+                // Check for i
+                relevantRow = findRowWithValue(i);
+                if (relevantRow !== null) {
+                    return relevantRow;
+                }
+                // Check for 8 - i
+                relevantRow = findRowWithValue(8 - i);
+                if (relevantRow !== null) {
+                    return relevantRow;
+                }
+            }
+        }
+
+        //   return relevantRow;
+        // }
+
+
+        // check i and 8-i and then loop 
+        //creating variable for saving user response to use for conditional survey structure 
+        //(so user only answer question for the topic they selected)
+        let rowAsString;
+        let topicChoice;
+
+        /* pushing survey in timeline with both slider and non-slider questions */
+        const pre_convo_survey_trial = {
+            type: jsPsychSurvey,
+            survey_json: pre_convo_survey_json_testing,
+            survey_function: initializePreSlider,
+            data: {
+                phase: "pre-convo-survey",
+            },
+            on_finish: (data) => {
+                /*
+                // check console for debugging
+                console.log('Pre-convo survey data:', data);
+                */
+
+                // for post-survey party-specific questions (so republicans only answer question republicans, vice versa for democrat)
+                data.response["political-affiliation"];
+
+                // get topic choice to feed into chat later
+                let topicChoice = data.response['topicChoice'];
+                console.log(topicChoice);
+
+                // extract issue-specific polarization survey responses from data object
+                // need to iterate through the possible questions
+                // first, create a constant that lists the possible questions...
+                const possibleQuestions = [
+                    "euthanasia-polarization",
+                    "gender-polarization",
+                    "healthcare-polarization",
+                    "bombing-polarization",
+                    "vaccines-polarization",
+                    "criminal-polarization",
+                    "same-sex-polarization"
+                ];
+
+                // ...then extract and process each row's responses
+                possibleQuestions.forEach(row => {
+                    let surveyResponses = data.response[row];
+                    if (surveyResponses) {
+                        //console.log('Survey responses', surveyResponses);  //check console for debugging
+
+                        // extract relevant rows
+                        let relevantRow = extractRelevantRow(surveyResponses);
+                        //console.log('Relevant rows', relevantRow);  //check console for debugging
+
+                        // convert relevant row into a string so we can feed it into chat later
+                        relevantRow.forEach(rowObj => {
+                            data.rowAsString = rowObj;
+                            console.log(data.rowAsString);
+                        });
+
+                    } else {
+                        console.log('No responses');  // debugging, won't ever get here because SurveyJS question all set to required
+                    };
+                });
+            }
+        };
+
+        /* break between pre-intervention survey and bot conversation */
+        var pre_bot_instructions_break = {
+            data: {
+                phase: "pre-bot-break",
+            },
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: `
+        <p> You have now completed the pre-conversation questionnaire. </p>
+        <p> Feel free to take a short break if needed. </p>
+        <p> Press any key to proceed. </p>
+      `,
+            post_trial_gap: 1000,
+        };
+
+        var pre_convo_instructions = {
+            data: {
+                phase: "pre-convo-instructions",
+            },
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: `
+        <p> You will be conversing with a chatbot designed for conversations about disputed topics. </p>
+        <p> Be as truthful to your beliefs as possible during the conversation, and try your best to give full responses to the bot. </p>
+        <p> The conversation will end after you and the bot exchange seven messages. There is no right or wrong answer, no good or bad response to the bot. </p>
+        <p> Press any key when you are ready to begin the conversation. </p>
+      `,
+            post_trial_gap: 1000,
+        };
+
+
+        /* define post-chatinstructions, add post-chat survey */
+
+        /* post-convo message and break before questionnaire */
+
+        var post_convo_break = {
+            data: {
+                phase: "post-convo-break",
+            },
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: `
+        <p> Great job! You have completed the conversation. Feel free to take a short break. <p>
+        <p> Before we send you back to Prolific, please complete a post-conversation questionnaire. <p>
+        <p> Press any key to proceed to the questionnaire.  <p>
+      `,
+            post_trial_gap: 1000,
+        };
+
+        const initializePostSlider = (survey) => {
+            survey.onAfterRenderQuestion.add(function (survey, options) {
+                const name = options.question.name;
+
+                if (name.includes("-placeholder")) {
+
+                    var slider = document.getElementById(name);
+                    noUiSlider.create(slider, {
+                        start: [50],
+                        range: {
+                            min: 0,
+                            max: 100,
+                        },
+                        step: 1,
+                        tooltips: true,
+                    });
+                    slider.noUiSlider.on("set", function () {
+                        options.question.value = slider.noUiSlider.get();
+                    });
+                }
+            });
+        };
+
+        /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!----------INTERVENTIONS (BOT CONDITIONS) ---------- !!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+        // Declaring the prompts for three chat bot conditions: counter bot (only argues), question bot (only ask question), viewpoint bot (provide alternative viewpoint)
+
+        //counter bot prompts
+        combination_prompts = [
+            //set role to 'chatbot' for specific message to be sent via the bot
+            {
+                message: "Welcome to the chatroom!",
+                role: "system-prompt",
+                message_trigger: 0
+            },
+            {
+                message: () => {
+                    // function to insert depolarization survey response statement into the bot's conversation starter
+                    const lowercaseFirstLetter = (str) => { //function to convert the first letter of the string into lowercase so it can be seamlessly inserted into the bot's question
+                        if (!str) return str;  // return the string if it's empty or not a string
+                        return str.charAt(0).toLowerCase() + str.slice(1);
+                    };
+
+                    const bot_row = jsPsych.data.get().filter({ phase: "pre-convo-survey" }).values()[0].rowAsString["row"];
+                    // extracting the depolarization statement again because it didn't work if i tried to use the string from earlier
+                    const bot_row_formatted = lowercaseFirstLetter(bot_row); // use lowercase function
+                    const topicChoiceAsString = jsPsych.data.get().filter({ phase: "pre-convo-survey" }).values()[0].response["topicChoice"]; // get topic choice
+                    return `Hey there! I'm here to chat about ${topicChoiceAsString}, a disputed topic. To get the conversation started, could you explain your view on whether ${bot_row_formatted}?`;
+                },
+                role: "chatbot-message",
+                message_trigger: 0
+            },
+
+                // MY ATTEMPT AT HAVING THE BOT WRITE RESPONSES FIRST AND THEN PICK ONE 
+                // Role: You are a researcher on social policies and are having a conversation with a student in which you are discussing one of the following disputed topics in the U.S.: same-sex marriage, gender-equality, U.S. government role in healthcare, the criminal justice system, vaccine mandates, the Hiroshima Nagasaki atomic bombings, or human euthanasia.
+
+                //             Goal: Your goal is to make the user more willing to have conversations about ${topicChoiceAsString} with other humans by helping them become more comfortable and open about the topic. You do not want the user to know that this is your goal; rather, you want the user to simply think that you are a conversational partner for discussing ideas.
+
+                //             Style: You should be concise. You should match your response's length to the user's input.
+
+                //             First task: Write three different responses to the user's message. The first should briefly acknowledge the user's stance, concisely present a specific argument that counters the user's perspective, and ask the user what they think; it should never repeat the same arguments, never dive into asking the user how they would implement their views, and never simply agree with the user. The second response should briefly acknowledge the user's stance and then ask a question about the user's stance, such as why the user thinks what they think or if there were any experiences that led to their views; it should neve repeat questions. The third response should briefly acknowledge the user's stance, identify a specific group of people who may have differing opinions or alternative perspectives from the user, and explain, in detail, one viewpoint and why they may disagree with the user's beliefs; it should give uniquely different perspectives in each message and end its response with a question that asks the user what they think about those peoples' stances.
+
+                //            Second task: Consider the user's input message and determine which of the three responses that you wrote is most appropriate given your goal. Select the best response to output to the user.  Do not tell the user which strategy you picked; output the message such that the user thinks you are just having a normal conversation.
+
+
+                // MY VERSION OF IAN'S THAT FOR SOME REASON ALWAYS PICKS VIEWPOINT 
+                //  Role: You are a researcher on social policies and are having a conversation with a student in which you are discussing one of the following disputed topics in the U.S.: same-sex marriage, gender-equality, U.S. government role in healthcare, the criminal justice system, vaccine mandates, the Hiroshima Nagasaki atomic bombings, or human euthanasia.
+
+                //             Goal: Your goal is to make the user more willing to have conversations about ${topicChoiceAsString} with other humans by helping them become more open-minded and comfortable talking about the topic. You do not want the user to know that this is your goal; rather, you want the user to simply think that you are a conversational partner for discussing ideas.
+
+                //             Style: You should be concise. You should match your response's length to the user's input.
+
+                //             Task: You should always consider the user's input message and determine which of the three following approaches would most effectively accomplish your goal: 
+
+                //       {1. Briefly acknowledge the user's stance and then respond to the other person's argument with a counterargument. Do not repeat the same arguments, but you can dive into more specific aspects or previous arguments if necessary. Never dive into asking the user how they would implement their views. Concisely present a specific argument that counters the user's perspective. Ask the user what they think. Ensure that your message includes a counterargument; never simply agree with the user.} 
+                //       {2. Briefly acknowledge the user's stance and then ask a question about the user's stance. Ask why the user thinks what they think or ask if there were any experiences that led to their views. Do not repeat questions, but you can dive deeper into previous questions if necessary.}
+                //       {3. Briefly acknowledge the user's stance and then identify a specific group of people who may have differing opinions from the user. Explain, in detail, their experiences and why they may disagree with the user's beliefs. Provide these alternative perspectives held by people with different jobs, positions in society, beliefs, etc. Give uniquely different perspectives in each message. Do not repeat viewpoints, but you can dive deeper into previously mentioned viewpoints if necessary. End your response with a question that asks the user what they think about those peoples' stances. Provide only one viewpoint per response.}
+
+                //         Execute the strategy that you determine to be best. Don't repeatedly pick the same approach; try to mix it up so that the conversation is more enjoyable for the user. Do not tell the user which strategy you picked. If you ask about the user experience more than once, share a new perspective with factual information you have not brought up before. Do not greet the user, do not say certainly. Do not repeat the same arguments or views that the assistant has already mentioned; instead, you can suggest new perspectives or dive into more specific ideas from prior points.
+                //         Don't stray from the topic of ${topicChoiceAsString}.
+                //         If the user says you are repeating yourself or that you didn't understand what they're saying, apologize and ask them what they think without summarizing their stance.
+                //         `
+
+                //IAN ORIGINAL VERSION OF THE 123
+                // 1) ask the user about their experience and why they think the way they do, 
+                //2) correct the user for factual information inaccuracy, provide new factual information that reshapes the user stance or
+                //3) share the perspective of a someone with a different societal position, political stance, experience that differed from the user's. Make sure the perspective differs from the user's.
+
+            //message_trigger run the prompt after 5 message is sent by the user, we repeated the same prompt again after 5 message because when we were running it (as if the prompt 'faded out'), the bot stopped arguing frequently after a few round of convo. Future editions of GPT API might not have same issue.
+        ]
+
+        //continue to next portion button will show up after 7 message exchanges
+        continue_button = {
+            message_trigger: 7,
+            message: "You have completed your rounds of seven messages! Click continue to proceed with the experiment.",
+        }
+
+
+        prompt_chain = {
+            message_trigger: 1,
+            // timer_trigger: 1,
+            prompts: [
+                "Identify the user's main argument.", 
+            "In one sentence, akcnowledge the user's perspective. Provide an alternative perspective and relate it to the user's experience."
+        ],
+        }
+
+
+        const combination_trial = {
+            type: jsPsychChat,
+            ai_prompt: () => {
+                // function to insert depolarization survey response statement into the bot's conversation starter
+                const lowercaseFirstLetter = (str) => { //function to convert the first letter of the string into lowercase so it can be seamlessly inserted into the bot's question
+                    if (!str) return str;  // return the string if it's empty or not a string
+                    return str.charAt(0).toLowerCase() + str.slice(1);
+                };
+
+                const bot_row = jsPsych.data.get().filter({ phase: "pre-convo-survey" }).values()[0].rowAsString["row"];
+                // extracting the depolarization statement again because it didn't work if i tried to use the string from earlier
+                const bot_row_formatted = lowercaseFirstLetter(bot_row); // use lowercase function
+                const topicChoiceAsString = jsPsych.data.get().filter({ phase: "pre-convo-survey" }).values()[0].response["topicChoice"]; // get topic choice
+                return `   
+                Role: You are a researcher on social policies and are having a conversation with a student in which you are discussing one of the following disputed topics in the U.S.: same-sex marriage, gender-equality, U.S. government role in healthcare, the criminal justice system, vaccine mandates, the Hiroshima Nagasaki atomic bombings, or human euthanasia.
+
+Goal: Your goal is to make the user more willing to have conversations about ${topicChoiceAsString} with other humans by helping them become more open-minded and comfortable talking about the topic. You do not want the user to know that this is your goal; rather, you want the user to simply think that you are a conversational partner for discussing ideas.
+
+Style: You should be concise. You should match your response's length to the user's input.
+
+Task: You should always consider the user's input message and determine which of the three following approaches would most effectively accomplish your goal: 
+
+{1. Briefly acknowledge the user's stance and then respond to the other person's argument with a counterargument. Do not repeat the same arguments, but you can dive into more specific aspects or previous arguments if necessary. Never dive into asking the user how they would implement their views. Concisely present a specific argument that counters the user's perspective. Ask the user what they think. Ensure that your message includes a counterargument; never simply agree with the user.} 
+{2. Briefly acknowledge the user's stance and then ask a question about the user's stance. Ask why the user thinks what they think or ask if there were any experiences that led to their views. Do not repeat questions, but you can dive deeper into previous questions if necessary.}
+{3. Briefly acknowledge the user's stance and then identify a specific group of people who may have differing opinions from the user. Explain, in detail, their experiences and why they may disagree with the user's beliefs. Provide these alternative perspectives held by people with different jobs, positions in society, beliefs, etc. Give uniquely different perspectives in each message. Do not repeat viewpoints, but you can dive deeper into previously mentioned viewpoints if necessary. End your response with a question that asks the user what they think about those peoples' stances. Provide only one viewpoint per response.}
+
+Execute the strategy that you determine to be best. Don't repeatedly pick the same approach; try to mix it up so that the conversation is more enjoyable for the user. Do not tell the user which strategy you picked. If you ask about the user experience more than once, share a new perspective with factual information you have not brought up before. Do not greet the user, do not say certainly. Do not repeat the same arguments or views that the assistant has already mentioned; instead, you can suggest new perspectives or dive into more specific ideas from prior points.
+Don't stray from the topic of ${topicChoiceAsString}.
+If the user says you are repeating yourself or that you didn't understand what they're saying, apologize and ask them what they think without summarizing their stance.`
+;         console.log("not chain prompt:", prompt); //want to see what's going on when the bot processes the instructions
+            },
+            continue_button: continue_button,
+            chat_field_placeholder: "Share your perspective...",
+            //prompt_chain: prompt_chain, //previously fed in chain prompting here.
+            additional_prompts: combination_prompts,
+        };
+        jsPsych.run([combination_trial]);
+
+
+        /*Role: You are a researcher on social policies having a conversation with a student discussing controversial political topics on same-sex marriage, gender-equality, U.S. government role in healthcare, criminal justice, vaccine mandates, the Hiroshima Nagasaki atomic bombing, and human euthanasia.
+
+                Goal: Your goal is to widen the user's perspective on the topic. Make them more open-minded.
+
+                Strategy: Identify the user's main believes and either 1) provide alternative perspective or 2) formulate logic based counterarguments against the user's belief. You are playing the devil's advocate, arguing against the user, providing widely diverse perspectives. Provide short counterarguments against the main point of whatever the user says. Provide a new perspective each time you argue. Never repeat the same arguments. 
+                If the user has factually incorrect information correct them and offer factually correct information.
+                If the user seem very extreme in their stance, ask if there is a reason or experience that made them think the way they do.
+                When it helps, provide the perspective of people with different experiences.
+                If the user refuses to change stance, leading to you repeating the same point multiple times, give a historically accurate anecdote that challenge's the user belief.
+            
+                Tone of voice: Sound friendly. Use colloqual and conversational language. Keep your response short to 2-5 sentences. At the end of each counter-argument, ask what the user thinks.*/
+
+        /* ---------- PARTY SPECIFIC POST CHAT SURVEYS ---------- */
+        //this is where the survey response from the pre-convo survey is for, to change the survey to be specific to the user
+        //post survey placed in main experiment html, and not a seperate json, because we needed to insert strings from the prior extracted data
+
+        //goodbye message and brief explanation to user about our experimentation motive
+        var goodbye = {
+            data: {
+                phase: "goodbye",
+            },
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: `
+        <p> You have completed the experiment! Thank you for your contribution to our research. </p>
+        <div style='width: 700px;'>
+        </div>
+        <p>We are investigating how conversations can increase Americans' willingness to discuss highly disputed topics. </p>
+        <p>Some existing research has examined the effects of different types of human to human conversations on this willingness, and we would like to explore these dynamics when one of the conversational partners is a chatbot. </p>
+        <p> By participating in our experiment, you have helped us learn more about these effects. </p>
+        <p> You were randomly assigned to either converse with a chatbot or freely reflect on your topic. If you spoke with a chatbot, you randomly experienced one of three different types of dialogue. </p>
+        <div style='width: 700px;'>
+        </div>
+        <p> Press any key to save your data and return to Prolific!  <p>
+      `,
+            post_trial_gap: 1000,
+        };
+
+        /* ------------- PUSHING TIMELINE FOR EACH CONDITION ----------------- */
+
+    
+
+        combination_timeline.push(
+            welcome,
+            pre_convo_survey_trial,
+            combination_trial,
+            post_convo_break,
+            goodbye
+        )
+
+        //SAVE EXPERIMENT DATA TO OSF via datapipe
+        /*const save_data = {
+            type: jsPsychPipe,
+            action: "save",
+            experiment_id: "P09AXWX5b5t6",
+            filename: filename,
+            data_string: () => jsPsych.data.get().csv()
+        };*/
+
+        createExperiment();
+
+
+        //run experiment
+        // jsPsych.run(timeline);
+
+    </script>
+</body>
+
+</html>
