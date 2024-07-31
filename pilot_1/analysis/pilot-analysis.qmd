@@ -7,7 +7,7 @@ editor: visual
 # Getting set up
 
 ```{r}
-#| label: Data Fetching. Load R packages. lol.
+#| label: Data Fetching. Load R packages
 #| include: false 
 
 library(osfr)
@@ -71,6 +71,7 @@ raw_df <- raw_df %>%
   fill(condition, .direction = "downup")
 
 ```
+
 
 # Survey data
 
@@ -2483,9 +2484,45 @@ write.csv(conversations_raw_df, "RAW_conversation_transcripts.csv", row.names = 
 ```
 
 ```{r}
+#| label: Make a csv with participants' survey feedback on the bot 
+#| include: false
 
+# make df
+bot_feedback <- surveys_df %>%
+  left_join(full_prolific_demographics_df) %>%
+  rename("start" = "Started at") %>%
+  filter(!any(condition == "control free reflection")) %>%
+  mutate("round_of_pilot" = case_when(
+    grepl("2024-07-14", start) ~ "Round 1 (Original prompts)",
+    grepl("2024-07-17", start) ~ "Round 2 (Original prompts)",
+    grepl("2024-07-18", start) ~ "Round 3 (Original prompts; conservative only)",
+    grepl("2024-07-26", start) ~ "Round 4 (Modified prompts + combo bot)",
+    TRUE ~ NA_character_
+  )) %>%
+  filter(question == "free-response" | question == "convo-effect-on-willingness-post" | question == "new-perspective-post
+" | question == "still-contributes-post" | question == "feelings-about-bot" | question == "topicChoice") %>%
+  group_by(prolific_subject_id) %>%
+  select(prolific_subject_id, question, answer, condition, round_of_pilot)
 
+# add some entries that explain what the questions were 
+define_questions <- data.frame(
+  question = c("THE FULL QUESTIONS",
+    "free-response: After your conversation with the chat bot, do you feel more willing to have a conversation with others about ${topicChoiceAsString}? Please freely reflect in the space below.",
+  "convo-effect-on-willingness: What parts of this conversation, if any, affected your willingness to talk with someone who has different views about ${topicChoiceAsString}? What made you feel like the conversation was or was not productive?", 
+  "new-perspective: Throughout this conversation, were there any moments that opened you up to a new perspective about ${topicChoiceAsString}? If so, what occurred in these moments? If not, what made you feel like the conversation was not productive?", 
+  "still-contributes: What still contributes to your willingness or unwillingness to converse with others about ${topicChoiceAsString}? Please freely reflect in the space below.", 
+  "feelings-about-bot: We are still working on improving our chatbot. How did you like talking with the bot? What do you wish were different? Please provide any feedback regarding your conversation that we have not already covered.",
+  "DATA"
+  ),
+  stringsAsFactors = FALSE
+)
+
+#merge them 
+bot_feedback <- bind_rows(define_questions, bot_feedback)
+
+write.csv(bot_feedback, "bot_feedback.csv", row.names = FALSE)
 ```
+
 
 ## Analyze time spent on control free reflections
 
