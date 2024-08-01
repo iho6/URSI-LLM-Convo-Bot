@@ -1,0 +1,213 @@
+
+/// THIS DOC IS JUST FOR LOGGING CODE THAT WE'RE NOT USING ANYMORE BUT WANT TO SAVE SOMEWHERE IN CASE WE COME BACK TO IT 
+
+///CONTENTS:
+/// PART 1: SOME COMBINATION PROMPT HISTORY
+/// PART 2: SOME OF OUR ATTEMPTS AT CHANGING CONTROL-INTERVENTION TIMER BASED ON INACTIVITY
+
+
+//// PART 1: 
+
+
+// MY ATTEMPT AT HAVING THE BOT WRITE RESPONSES FIRST AND THEN PICK ONE 
+// Role: You are a researcher on social policies and are having a conversation with a student in which you are discussing one of the following disputed topics in the U.S.: same-sex marriage, gender-equality, U.S. government role in healthcare, the criminal justice system, vaccine mandates, the Hiroshima Nagasaki atomic bombings, or human euthanasia.
+
+//             Goal: Your goal is to make the user more willing to have conversations about ${topicChoiceAsString} with other humans by helping them become more comfortable and open about the topic. You do not want the user to know that this is your goal; rather, you want the user to simply think that you are a conversational partner for discussing ideas.
+
+//             Style: You should be concise. You should match your response's length to the user's input.
+
+//             First task: Write three different responses to the user's message. The first should briefly acknowledge the user's stance, concisely present a specific argument that counters the user's perspective, and ask the user what they think; it should never repeat the same arguments, never dive into asking the user how they would implement their views, and never simply agree with the user. The second response should briefly acknowledge the user's stance and then ask a question about the user's stance, such as why the user thinks what they think or if there were any experiences that led to their views; it should neve repeat questions. The third response should briefly acknowledge the user's stance, identify a specific group of people who may have differing opinions or alternative perspectives from the user, and explain, in detail, one viewpoint and why they may disagree with the user's beliefs; it should give uniquely different perspectives in each message and end its response with a question that asks the user what they think about those peoples' stances.
+
+//            Second task: Consider the user's input message and determine which of the three responses that you wrote is most appropriate given your goal. Select the best response to output to the user.  Do not tell the user which strategy you picked; output the message such that the user thinks you are just having a normal conversation.
+
+
+// MY VERSION OF IAN'S THAT FOR SOME REASON ALWAYS PICKS VIEWPOINT 
+//  Role: You are a researcher on social policies and are having a conversation with a student in which you are discussing one of the following disputed topics in the U.S.: same-sex marriage, gender-equality, U.S. government role in healthcare, the criminal justice system, vaccine mandates, the Hiroshima Nagasaki atomic bombings, or human euthanasia.
+
+//             Goal: Your goal is to make the user more willing to have conversations about ${topicChoiceAsString} with other humans by helping them become more open-minded and comfortable talking about the topic. You do not want the user to know that this is your goal; rather, you want the user to simply think that you are a conversational partner for discussing ideas.
+
+//             Style: You should be concise. You should match your response's length to the user's input.
+
+//             Task: You should always consider the user's input message and determine which of the three following approaches would most effectively accomplish your goal: 
+
+//       {1. Briefly acknowledge the user's stance and then respond to the other person's argument with a counterargument. Do not repeat the same arguments, but you can dive into more specific aspects or previous arguments if necessary. Never dive into asking the user how they would implement their views. Concisely present a specific argument that counters the user's perspective. Ask the user what they think. Ensure that your message includes a counterargument; never simply agree with the user.} 
+//       {2. Briefly acknowledge the user's stance and then ask a question about the user's stance. Ask why the user thinks what they think or ask if there were any experiences that led to their views. Do not repeat questions, but you can dive deeper into previous questions if necessary.}
+//       {3. Briefly acknowledge the user's stance and then identify a specific group of people who may have differing opinions from the user. Explain, in detail, their experiences and why they may disagree with the user's beliefs. Provide these alternative perspectives held by people with different jobs, positions in society, beliefs, etc. Give uniquely different perspectives in each message. Do not repeat viewpoints, but you can dive deeper into previously mentioned viewpoints if necessary. End your response with a question that asks the user what they think about those peoples' stances. Provide only one viewpoint per response.}
+
+//         Execute the strategy that you determine to be best. Don't repeatedly pick the same approach; try to mix it up so that the conversation is more enjoyable for the user. Do not tell the user which strategy you picked. If you ask about the user experience more than once, share a new perspective with factual information you have not brought up before. Do not greet the user, do not say certainly. Do not repeat the same arguments or views that the assistant has already mentioned; instead, you can suggest new perspectives or dive into more specific ideas from prior points.
+//         Don't stray from the topic of ${topicChoiceAsString}.
+//         If the user says you are repeating yourself or that you didn't understand what they're saying, apologize and ask them what they think without summarizing their stance.
+//         `
+
+//IAN ORIGINAL VERSION OF THE 123
+// 1) ask the user about their experience and why they think the way they do, 
+//2) correct the user for factual information inaccuracy, provide new factual information that reshapes the user stance or
+//3) share the perspective of a someone with a different societal position, political stance, experience that differed from the user's. Make sure the perspective differs from the user's.
+
+//message_trigger run the prompt after 5 message is sent by the user, we repeated the same prompt again after 5 message because when we were running it (as if the prompt 'faded out'), the bot stopped arguing frequently after a few round of convo. Future editions of GPT API might not have same issue.
+
+//// PART 2:
+var start_time;
+var last_activity_time;
+var inactive_time = 0;
+var inactivity_threshold = 20000; // in ms
+let lastKeyPressTime = null;
+let countdownTime = 120; // 2 minutes in seconds
+let countdownInterval = null;
+
+
+// Function to update the countdown display
+function updateCountdownDisplay() {
+const minutes = Math.floor(countdownTime / 60);
+const seconds = countdownTime % 60;
+document.getElementById('countdown').textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+}
+
+// Function to start the countdown
+function startCountdown() {
+countdownInterval = setInterval(function() {
+if (lastKeyPressTime !== null && (jsPsych.currentTime() - lastKeyPressTime) > 20000) {
+  // Pause the countdown if more than 20 seconds have passed since the last key press
+  clearInterval(countdownInterval);
+} else {
+  if (countdownTime > 0) {
+    countdownTime--;
+    updateCountdownDisplay();
+    
+  } else {
+    clearInterval(countdownInterval);
+    alert('You have completed the minimum amount of reflection time. Feel free to keep writing or continue with the experiment');
+    console.log('in function', countdownInterval)
+  }
+}
+}, 1000);
+}
+
+// Event listener for key presses
+document.addEventListener('keydown', function(event) {
+lastKeyPressTime = jsPsych.currentTime();
+if (countdownInterval === null) {
+startCountdown(); // Start the countdown if it's not already running
+} else {
+clearInterval(countdownInterval); // Clear the previous interval
+startCountdown(); // Restart the countdown
+}
+});
+
+// Initialize the countdown display
+updateCountdownDisplay();
+startCountdown(); // Start the countdown on load
+
+function getElapsedTimeSinceLastKeyPress() {
+    if (lastKeyPressTime === null) {
+        return 'No key press detected yet';
+    } else {
+        const currentTime = jsPsych.currentTime();
+        return currentTime - lastKeyPressTime;
+    }
+}
+
+function checkIfCountdownFinished() {
+    if (lastKeyPressTime === null) {
+        return 'No key press detected yet';
+    } else {
+        const currentTime = jsPsych.currentTime();
+        return currentTime - lastKeyPressTime;
+    }
+}
+// function to check elapsed time
+function checkElapsedTimeWithoutInactivity() {
+    var currentTime = Date.now();
+    var elapsedTimeWithInactivity = (currentTime - start_time) / 1000; // elapsedTime is in seconds
+    var elapsedTimeWithoutInactivity = (currentTime - start_time - inactive_time) / 1000; // elapsedTime is in seconds
+    if (elapsedTimeWithoutInactivity < 30) {
+        alert("Please reflect on the statement for the full duration of time.");
+        //   jsPsych.endExperiment('Restarting survey due to insufficient time.');
+        jsPsych.run([ //basically just restart the control timeline, picking up with control intervention
+            control_intervention,
+            post_control_break,
+            republican_survey,
+            democrat_survey,
+            neutral_survey,
+            other_survey,
+            euthanasia_post_survey,
+            gender_post_survey,
+            healthcare_post_survey,
+            bombings_post_survey,
+            vaccines_post_survey,
+            criminal_post_survey,
+            same_sex_post_survey,
+            goodbye,
+            save_data]);
+        console.log('inactive time', inactive_time);
+        console.log('elapsedTimeWithInactivity', elapsedTimeWithInactivity);
+        console.log('elapsedTimeWithoutInactivity', elapsedTimeWithoutInactivity)
+    } else {
+        jsPsych.finishTrial();
+    }
+
+}
+
+function keyboardInactivity() {
+    var currentTime = Date.now();
+    if (last_activity_time && (currentTime - last_activity_time) > inactivity_threshold) {
+        inactive_time += (currentTime - last_activity_time - inactivity_threshold);
+    }
+    last_activity_time = currentTime;
+}
+
+//creating text box for control condition
+var control_intervention = {
+    type: jsPsychSurvey,
+    data: {
+        phase: "control-intervention",
+    },
+    survey_json: () => {
+        const row = jsPsych.data.get().filter({ phase: "pre-convo-survey" }).values()[0].rowAsString["row"];
+        var control_intervention_json = {
+            elements: [{
+                type: "comment",
+                name: "control-free-response",
+                title: `Please freely reflect in the space below on the following statement: "${row}"`,
+                isRequired: true,
+            }]
+        };
+        return control_intervention_json;
+    },
+    on_load: function () {
+        // Record the start time
+        start_time = Date.now();
+        startCountdown();
+    },
+    on_finish: function (data) {
+        // Check elapsed time when the survey is finished
+        if (countdownInterval > 0) {
+        alert("Please reflect on the statement for the full duration of time.");
+        //   jsPsych.endExperiment('Restarting survey due to insufficient time.');
+        jsPsych.run([ //basically just restart the control timeline, picking up with control intervention
+            control_intervention,
+            post_control_break,
+            republican_survey,
+            democrat_survey,
+            neutral_survey,
+            other_survey,
+            euthanasia_post_survey,
+            gender_post_survey,
+            healthcare_post_survey,
+            bombings_post_survey,
+            vaccines_post_survey,
+            criminal_post_survey,
+            same_sex_post_survey,
+            goodbye,
+            save_data]); 
+            console.log('in on finish', countdownInterval)
+        }
+      else {
+        jsPsych.finishTrial();
+
+    }
+        //  checkIfCountdownFinished();
+    }
+
+};
+jsPsych.run([control_intervention]);

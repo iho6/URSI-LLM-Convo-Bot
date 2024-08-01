@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link href="styles.css" rel="stylesheet" type="text/css">
+  <script src="https://unpkg.com/jspsych"></script>
+  <script src="../dist/index.browser.js"></script>
+  <link href="https://unpkg.com/jspsych/css/jspsych.css" rel="stylesheet" type="text/css">
+</head>
+
+<body></body>
+<script>
+  const jsPsych = initJsPsych({
+    on_finish: function () {
+      jsPsych.data.displayData();
+      // jsPsych.data.get().localSave("csv", "llm_trial.csv");
+    },
+  });
+
+  // Declaring the prompts necessary
+  prompts = [
+    {
+      message: "Welcome to the chatroom!",
+      role: "system-prompt",
+      message_trigger: 0
+    },
+
+    //timer trigger in ms
+    //"chatbot" = chatbot will say the thing typed in the prompt
+    {
+      message: "Hey there! I'm Adorabot, here to chat about a disputed topic in the U.S. Which topic would you like to discuss: human euthanasia, gender inequality, the role of government in healthcare, the atomic bombing of Hiroshima and Nagasaki, mandating vaccines, criminal justice reforms, or same-sex marriage?",
+      role: "chatbot-message",
+      message_trigger: 0
+    },
+//Explain in detail experiences of people that lead them having different perspectives from the user. 
+//Explain in detail how people with differing stance on the topic have experience that oppose the user's view. Ask what the user thinks about those people's stance. Match your response to the user's response length. If the user talks about a topic that is not human euthanasia, gender inequality, the role of government in healthcare, atomic bombing, vaccine mandate, criminal justice reform, or same-sex marriage, remind the user that you are here to talk about the above topics without asking a question.
+    {
+      prompt: "Identify a group of people with differing opinion from the user. Explain in detail their experiences and why they disagree with the user's input. Provide an alternative perspectives of people with different jobs, positions in society, beliefs. Give different perspectives each time. Ask what the user thinks about those people's stance. Acknowledge the user's perpsective. Responde in 1 paragraph.",
+      role: "chatbot-prompt",
+      message_trigger: 1,
+    }
+  ]
+
+  continue_button = {
+    message_trigger: 10,
+    message: "You have completed your six rounds of messages with Adorabot! Click continue to proceed with the experiment.",
+  }
+
+  const trial = {
+    type: jsPsychChat,
+    ai_prompt: "Give a 1 sentence comment on the complexity of the <topic> then say: “Could you explain your view on <topic> to get the conversation started?Match your response to the user's response length. If the user talks about a topic that is not human euthanasia, gender inequality, the role of government in healthcare, atomic bombing, vaccine mandate, criminal justice reform, or same-sex marriage, remind the user that you are here to talk about the above topics without asking a question.",
+    continue_button: continue_button,
+    chat_field_placeholder: "Share your thought...",
+    additional_prompts: prompts,
+  }
+  //past prompts
+  //"Use colloquial language. In one sentence, say you understand the user's point, then concisely present specific arguments and alternative perspective that counters the user's points. Ask why the user think what they think. Match your response to the user's response length. If user responde is under 7 words, provide more information on the topic and ask the user what they think. If the user talks about a topic that is not human euthanasia, gender inequality, the role of government in healthcare, atomic bombing, vaccine mandate, criminal justice reform, or same-sex marriage, remind the user that you are here to talk about the above topics without asking a question."
+  // "In a conversational tone, concisely present specific counterarguments to the user's points. Briefly acknowledge the user's point and ask for their specific thought on your response."
+
+  jsPsych.run([trial]);
+</script>
+
+</html>

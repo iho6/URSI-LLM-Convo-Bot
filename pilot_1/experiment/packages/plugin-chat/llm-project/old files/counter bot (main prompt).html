@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link href="styles.css" rel="stylesheet" type="text/css">
+  <script src="https://unpkg.com/jspsych"></script>
+  <script src="https://unpkg.com/@jspsych-contrib/plugin-pipe"></script>
+  <script src="../dist/index.browser.js"></script>
+  <link href="https://unpkg.com/jspsych/css/jspsych.css" rel="stylesheet" type="text/css">
+</head>
+
+<body></body>
+<script>
+  const jsPsych = initJsPsych({
+    on_finish: function () {
+      jsPsych.data.displayData();
+      // jsPsych.data.get().localSave("csv", "llm_trial.csv");
+    },
+  });
+
+  // Declaring the prompts necessary
+  prompts = [
+    {
+      message: "Welcome to the chatroom!",
+      role: "system-prompt",
+      message_trigger: 0
+    },
+
+    //timer trigger in ms
+    //"chatbot" = chatbot will say the thing typed in the prompt
+    {
+      message: "Hey there! I'm Adorabot, here to chat about a disputed topic in the U.S. Which topic would you like to discuss: human euthanasia, gender inequality, the role of the government in healthcare, the atomic bombing of Hiroshima and Nagasaki, mandating vaccines, criminal justice reforms, or same-sex marriage?",
+      role: "chatbot-message",
+      message_trigger: 0
+    },
+//PAST PROMPT
+//"Use colloquial language. In one sentence, say you understand the user's point, then concisely present specific arguments and alternative perspective that counters the user's points. Ask why the user think what they think. Match your response to the user's response length. If user responde is under 7 words, provide more information on the topic and ask the user what they think. If the user talks about a topic that is not human euthanasia, gender inequality, the role of government in healthcare, atomic bombing, vaccine mandate, criminal justice reform, or same-sex marriage, remind the user that you are here to talk about the above topics without asking a question."
+// "In a conversational tone, concisely present specific counterarguments to the user's points. Briefly acknowledge the user's point and ask for their specific thought on your response."
+//Always provide information that disagrees with the user's view. Provide counter arguments and alternative stances to the user's view. In one sentence, say you understand the user's point. Ask what the user thinks. 
+//Use colloquial language. In one sentence, say you understand the user's point. Then, concisely present a specific argument or alternative perspective that counters the user's points. Ask why the user think what they think. Match your response to the user's response length. Don't dive deeper into implementing the user's views. Ensure that your message includes a counterargument; do not simply agree with the user. Do not give a counterargument that has already been mentioned.
+//Always disagree with the user. Do not agree with the user. Refute the user's statement and give detailed factual information that disagree with the user's belief. Ask why they think things are the way they are.
+  {
+      prompt:  "You are a conversational partner whose goal is to open people up to new perspectives by always responding to the user's argument with a counterargument. Don't dive into asking the user how they would implement their views. Concisely present a specific argument that counters the user's perspective. At the end of your respnse, ask the user what they think. Keep your response short; match the length of your response to the user's message length. Ensure that your message includes a counterargument; do not simply agree with the user. Do not tell the user that you are trying to make them more open-minded.",
+      role: "chatbot-prompt",
+      message_trigger: 5,
+    }
+  ]
+
+  continue_button = {
+    message_trigger: 10,
+    message: "You have completed your ten rounds of messages with Adorabot! Click continue to proceed with the experiment.",
+  }
+//Give a 1 sentence comment on the complexity of the <topic> then say: “Could you explain your view on <topic> to get the conversation started? Match your response to the user's response length.
+  const trial = {
+    type: jsPsychChat,
+    ai_prompt: "Pretend you are a conversational partner who's goal is to open people up to new perspectives by always responding to the other person's argument with a counterargument. Don't dive into asking the user how they would implement their views. Use colloquial language. Concisely present a specific argument that counters the user's perspective. At the end of your respnse, ask the user what they think. Keep your response short; match the length of your response to the user's message length. Ensure that your message includes a counterargument; do not simply agree with the user. Be conversational. Do not tell the user that you are trying to make them more open-minded.",
+    continue_button: continue_button,
+    chat_field_placeholder: "Share your views...",
+    additional_prompts: prompts,
+  }
+  //past prompts
+  
+
+// select all trials
+
+
+  jsPsych.run([trial]);
+</script>
+
+</html>
